@@ -104,6 +104,30 @@ describe('faScrollView', function() {
 
     common.destroyApp(app);
   });
+
+  it('should respect fa-index order', function() {
+    var app = common.createApp(
+      '<fa-scroll-view fa-pipe-from="eventHandler" fa-start-index="1">' +
+        '<fa-view ng-repeat="view in views" fa-index="view">' +
+          '<fa-surface fa-size="[undefined, 100]" class="{{view}}"></fa-surface>' +
+        '</fa-view>' +
+      '</fa-scroll-view>'
+    );
+
+    $scope.eventHandler = eventHandler;
+    $scope.views = [2, 3, 1];
+    $scope.$apply();
+
+    var scrollView = $famous.find('fa-scroll-view')[0].renderNode;
+    var nodes = scrollView._node._.array;
+    var getExpectedIndex = function(view) { return view._object._node._child._object.getClassList()[0]; };
+    expect(nodes.map(getExpectedIndex)).toEqual(["1", "2", "3"]);
+
+
+    common.destroyApp(app);
+
+  });
+
    describe("hide and show", function() {
 
     it("hide and show properties on the ScrollView", function() {
