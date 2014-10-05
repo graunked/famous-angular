@@ -5590,57 +5590,47 @@ angular.module('famous.angular')
             var options = scope.$eval(attrs.faOptions) || {};
             isolate.renderNode = new ScrollView(options);
 
+            var viewSeq = new ViewSequence({array: []});
+            isolate.renderNode.sequenceFrom(viewSeq);
+
             $famousDecorator.addRole('renderable',isolate);
             isolate.show();
 
-
-            var updateScrollview = function(init){
-              // Synchronize the update on the next digest cycle
-              // (if this isn't done, $index will not be up-to-date
-              // and sort order will be incorrect.)
-              scope.$$postDigest(function(){
-                _children.sort(function(a, b){
-                  return a.index - b.index;
-                });
-
-                var options = {
-                  array: function(_children) {
-                    var _ch = [];
-                    angular.forEach(_children, function(c, i) {
-                      _ch[i] = c.renderGate;
-                    });
-                    return _ch;
-                  }(_children)
-                };
-                //set the first page on the scrollview if
-                //specified
-                if(init)
-                  options.index = scope.$eval(attrs.faStartIndex);
-
-                var viewSeq = new ViewSequence(options);
-                isolate.renderNode.sequenceFrom(viewSeq);
-              });
+            var positionByIndex = function(index) {
+              for (var i = 0; i < _children.length; i++) {
+                if (_children[i].index >= index) return i;
+              }
+              return i;
             };
+
+            var positionById = function(id) {
+              for (var i = 0; i < _children.length; i++) {
+                if (_children[i].$id === id) return i;
+              }
+              return i;
+            };
+
+            var insertIntoViewSeq = function(x) {
+              var index  = x.index ? positionByIndex(x.index) : 0;
+              _children.splice(index, 0, x);
+              viewSeq.splice(index, 0, x.renderNode);
+            };
+
+            var removeFromViewSeq = function(id) {
+              var index = positionById(id);
+              _children.splice(index, 1);
+              viewSeq.splice(index, 1);
+            };
+
 
             $famousDecorator.sequenceWith(
               scope,
               function(data) {
-                _children.push(data);
-                updateScrollview(true);
+                insertIntoViewSeq(data);
               },
               function(childScopeId) {
-                _children = function(_children) {
-                  var _ch = [];
-                  angular.forEach(_children, function(c) {
-                    if (c.id !== childScopeId) {
-                      _ch.push(c);
-                    }
-                  });
-                  return _ch;
-                }(_children);
-                updateScrollview();
-              },
-              updateScrollview
+                removeFromViewSeq(childScopeId);
+              }
             );
 
           },
